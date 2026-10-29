@@ -1,0 +1,24 @@
+{
+  "name": "737NG/MAX AMM ATA20 紧固件标准力矩查询",
+  "short_name": "力矩查询",
+  "description": "波音737NG/MAX飞机AMM ATA20-50-11标准紧固件力矩与自锁力矩速查工具",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#002b5c",
+  "theme_color": "#004b93",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

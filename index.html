@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark" data-view-mode="desktop">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#002b5c" />
+  <title>737NG/MAX 标准力矩查询系统 | AMM 20-50-11 &amp; BAC5009</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <!-- 顶部导航栏 -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="logo-group">
+        <svg class="airplane-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+        </svg>
+        <div class="title-area">
+          <h1>
+            <span>737NG/MAX 标准力矩查询系统</span>
+            <span class="badge-tag">AMM 20-50-11</span>
+            <span class="caution-remark">⚠️ 仅供参考，具体以当前手册为准！</span>
+          </h1>
+          <div class="subtitle">波音 AMM 20-50-11 (Table 201–227 全27张表) · BAC5009 标准施工 · 612项紧固件 &amp; 136项 BAC 规范字典</div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- 桌面/手机端切换选项 -->
+        <div class="view-mode-switch" role="group" aria-label="桌面端与手机端布局切换">
+          <button id="modeDesktopBtn" class="mode-btn active" type="button" data-mode="desktop" title="切换为桌面端宽屏多列模式">
+            🖥️ 桌面端
+          </button>
+          <button id="modeMobileBtn" class="mode-btn" type="button" data-mode="mobile" title="切换为手机端单列紧凑模式">
+            📱 手机端
+          </button>
+        </div>
+        <button id="themeToggleBtn" class="btn-icon" type="button" title="切换日间/夜间主题">
+          <span id="themeIcon">☀️ 日间</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- 顶部五大模块导航栏（严格按用户指定顺序：标准力矩查询--基本定义--施工规范--BAC标准件字典--手册全表预览） -->
+    <nav class="tab-nav" role="tablist">
+      <button class="tab-btn active" type="button" data-tab="calculator" role="tab" aria-selected="true">
+        🔧 标准力矩查询
+      </button>
+      <button class="tab-btn" type="button" data-tab="definitions" role="tab" aria-selected="false">
+        📘 基本定义
+      </button>
+      <button class="tab-btn" type="button" data-tab="rules" role="tab" aria-selected="false">
+        📐 施工规范
+      </button>
+      <button class="tab-btn" type="button" data-tab="catalog" role="tab" aria-selected="false">
+        🗂️ BAC标准件字典
+      </button>
+      <button class="tab-btn" type="button" data-tab="handbook" role="tab" aria-selected="false">
+        📊 手册全表预览
+      </button>
+    </nav>
+
+    <!-- ==================== 大模块 1：标准力矩查询（四步模块架构） ==================== -->
+    <section id="view-calculator" class="tab-view active">
+
+      <!-- 模块 1：件号检索 -->
+      <div class="module-card">
+        <div class="module-header">
+          <div class="module-title-group">
+            <span class="step-badge">模块 1</span>
+            <h2 class="module-title">件号检索</h2>
+          </div>
+          <span class="module-tag">支持完整件号 (如 BACB30NN3K7) 或前8位基础件号模糊搜索</span>
+        </div>
+
+        <div class="search-wrapper">
+          <input
+            type="text"
+            id="partSearchInput"
+            class="search-input"
+            value="BACB30NN3K7"
+            placeholder="输入紧固件件号，例如：BACB30NN3K7、BACB30NM4K10、BACN10YN3、MS21042..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button id="clearSearchBtn" class="clear-btn" type="button" title="清空输入">✕</button>
+        </div>
+
+        <div class="candidate-section">
+          <div class="candidate-label">
+            <span id="candidateCountLabel">匹配的紧固件基础件号</span>
+            <span>点击下方卡片切换选中项目（选中项目高亮显示）</span>
+          </div>
+          <div id="candidateList" class="candidate-grid"></div>
+        </div>
+      </div>
+
+      <!-- 模块 2：紧固件信息展示（去重整合后的【小卡片模式】） -->
+      <div class="module-card">
+        <div class="module-header">
+          <div class="module-title-group">
+            <span class="step-badge">模块 2</span>
+            <h2 class="module-title">紧固件信息展示（小卡片模式）</h2>
+          </div>
+          <span id="decodedStatusBadge" class="module-tag">已解析件号</span>
+        </div>
+
+        <div id="fastenerInfoBody"></div>
+      </div>
+
+      <!-- 模块 3：施工条件 -->
+      <div class="module-card">
+        <div class="module-header">
+          <div class="module-title-group">
+            <span class="step-badge">模块 3</span>
+            <h2 class="module-title">施工条件</h2>
+          </div>
+          <span class="module-tag">依据 AMM 20-50-11 2.C.(1)–(12) 选择现场安装工况（已选高亮）</span>
+        </div>
+
+        <div class="conditions-stack">
+          <!-- 3.1 安装部件材料 (金属 vs 复合材料) -->
+          <div>
+            <div class="cond-row-title">
+              <span>1. 安装部件材料 (Installed Structure Material)</span>
+              <span class="cond-row-sub">依据 AMM 20-50-11 2.C.(3)(d) 区分金属结构表与非金属/复合材料结构表</span>
+            </div>
+            <div class="cond-options" id="structureConditionGroup">
+              <button type="button" class="cond-btn active" data-structure="metal">
+                <div class="cond-btn-text">
+                  <span>🔩 金属部件安装 (Metallic Structure)</span>
+                  <span class="cond-btn-sub" id="metalTableLabel">适用金属力矩表 (如 Table 203)</span>
+                </div>
+                <span class="cond-check">✓</span>
+              </button>
+              <button type="button" class="cond-btn" data-structure="composite">
+                <div class="cond-btn-text">
+                  <span>✈️ 复合材料/非金属部件安装 (Composite Structure)</span>
+                  <span class="cond-btn-sub" id="compTableLabel">适用复合材料力矩表 (如 Table 215)</span>
+                </div>
+                <span class="cond-check">✓</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 3.2 干/湿润滑状态 (Dry vs Lubricated) -->
+          <div>
+            <div class="cond-row-title">
+              <span>2. 紧固件干/湿润滑状态 (Dry vs Lubricated Fasteners)</span>
+              <span class="cond-row-sub">依据 2.C.(3)/(8) 判断干安装或涂抹鲸蜡醇/发动机油/带铝涂层(后缀A)</span>
+            </div>
+            <div class="cond-options" id="lubeConditionGroup">
+              <button type="button" class="cond-btn active" data-lubed="false">
+                <div class="cond-btn-text">
+                  <span>☀️ 干紧固件力矩 (Dry Fasteners)</span>
+                  <span class="cond-btn-sub">无附加润滑剂、裸金属、镀镉(无鲸蜡醇)或后缀 D</span>
+                </div>
+                <span class="cond-check">✓</span>
+              </button>
+              <button type="button" class="cond-btn" data-lubed="true">
+                <div class="cond-btn-text">
+                  <span>💧 润滑/湿紧固件力矩 (Lubed / A-Finish)</span>
+                  <span class="cond-btn-sub">含鲸蜡醇润滑(如后缀 K)、涂油或带铝涂层(后缀 A，BMS10-85)</span>
+                </div>
+                <span class="cond-check">✓</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 3.3 转动方式与贴合面密封胶 (Turn Nut vs Turn Head / Fay Seal) -->
+          <div>
+            <div class="cond-row-title">
+              <span>3. 转动紧固方式与贴合面密封 (Tightening Method &amp; Fay Seal)</span>
+              <span class="cond-row-sub">依据 2.C.(10) 区分常规拧螺帽无密封胶 vs 拧螺杆头/有贴合面密封胶</span>
+            </div>
+            <div class="cond-options" id="methodConditionGroup">
+              <button type="button" class="cond-btn" data-turn-head="false">
+                <div class="cond-btn-text">
+                  <span>🔧 转动螺帽 · 且无贴合面密封胶</span>
+                  <span class="cond-btn-sub">TURN THE NUT AND NO FAY SEAL (常规推荐施力方式)</span>
+                </div>
+                <span class="cond-check">✓</span>
+              </button>
+              <button type="button" class="cond-btn active" data-turn-head="true">
+                <div class="cond-btn-text">
+                  <span>🪛 转动螺杆头 · 及/或有贴合面密封胶</span>
+                  <span class="cond-btn-sub">TURN THE FASTENER HEAD AND/OR FAY SEAL (拧螺杆头或有密封胶)</span>
+                </div>
+                <span class="cond-check">✓</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 模块 4：查询结果 -->
+      <div class="module-card">
+        <div class="module-header">
+          <div class="module-title-group">
+            <span class="step-badge">模块 4</span>
+            <h2 class="module-title">查询结果</h2>
+          </div>
+          <span id="resultTableBadge" class="module-tag">Table 203</span>
+        </div>
+
+        <div id="queryResultBody"></div>
+      </div>
+    </section>
+
+    <!-- ==================== 大模块 2：基本定义 ==================== -->
+    <section id="view-definitions" class="tab-view">
+      <div class="module-card">
+        <div class="module-header">
+          <div class="module-title-group">
+            <span class="step-badge">基本定义</span>
+            <h2 class="module-title">波音航空标准紧固件与力矩核心概念详解</h2>
+          </div>
+          <span class="module-tag">PSDS · AMM 20-50-11 · BAC5009</span>
+        </div>
+
+        <!-- 一、件号命名规则 -->
+        <div class="coding-diagram">
+          <div class="coding-title">一、波音标准螺杆件号命名规则拆解（以 <code>BACB30NN3K7M</code> 为例）</div>
+          <div class="coding-segments">
+            <div class="code-seg">
+              <span class="code-seg-char">BACB</span>
+              <span class="code-seg-name">件号类别</span>
+              <span class="code-seg-desc">Boeing Aircraft Company Bolt (波音标准螺杆/螺栓)</span>
+            </div>
+            <div class="code-seg">
+              <span class="code-seg-char">30</span>
+              <span class="code-seg-name">品种大类</span>
+              <span class="code-seg-desc">结构精密公差螺栓系列</span>
+            </div>
+            <div class="code-seg">
+              <span class="code-seg-char">NN</span>
+              <span class="code-seg-name">系列特征码</span>
+              <span class="code-seg-desc">6Al-4V钛合金 · 100°沉头 · 十字槽 · 长螺纹 (160 KSI 抗拉)</span>
+            </div>
+            <div class="code-seg">
+              <span class="code-seg-char">3</span>
+              <span class="code-seg-name">标称直径代码</span>
+              <span class="code-seg-desc">3 = #10 (0.1900"-32)；4 及以上按 1/16" 递增 (如 4 = 1/4")</span>
+            </div>
+            <div class="code-seg">
+              <span class="code-seg-char">K</span>
+              <span class="code-seg-name">镀层与润滑码</span>
+              <span class="code-seg-desc">K = 镀镉+鲸蜡醇；A = 铝涂层(BMS10-85)；- = 裸钛无润滑</span>
+            </div>
+            <div class="code-seg">
+              <span class="code-seg-char">7</span>
+              <span class="code-seg-name">夹持长度 (Grip)</span>
+              <span class="code-seg-desc">以 1/16" (0.0625") 为单位：7 = 7/16" = 0.4375 in</span>
+            </div>
+            <div class="code-seg">
+              <span class="code-seg-char">M / X / Y</span>
+              <span class="code-seg-name">配合与加大码</span>
+              <span class="code-seg-desc">无后缀=过渡配合；M=紧公差孔；X=+1/64"加大；Y=+1/32"加大</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="coding-diagram">
+          <div class="coding-title">二、波音标准自锁螺帽件号命名规则拆解（以 <code>BACN10YN3CD</code> 为例）</div>
+          <div class="coding-segments">
+            <div class="code-seg">
+              <span class="code-seg-char">BACN</span>
+              <span class="code-seg-name">件号类别</span>
+              <span class="code-seg-desc">Boeing Aircraft Company Nut (波音标准螺帽)</span>
+            </div>
+            <div class="code-seg">
+              <span class="code-seg-char">10</span>
+              <span class="code-seg-name">品种大类</span>
+              <span class="code-seg-desc">结构自锁与非自锁螺帽系列</span>
+            </div>
+            <div class="code-seg">
+              <span class="code-seg-char">YN</span>
+              <span class="code-seg-name">系列特征码</span>
+              <span class="code-seg-desc">双六角/十二角低高度自锁螺帽 (BPS-N-70)</span>
+            </div>
+            <div class="code-seg">
+              <span class="code-seg-char">3</span>
+              <span class="code-seg-name">螺纹尺寸代码</span>
+              <span class="code-seg-desc">3 = 0.1900-32 (#10-32 UNJF-3B)；4 = 0.2500-28</span>
+            </div>
+            <div class="code-seg">
+              <span class="code-seg-char">C / CM</span>
+              <span class="code-seg-name">材料与镀层码</span>
+              <span class="code-seg-desc">C = A286 CRES 不锈钢镀镉；无 C = 合金钢镀镉；A = 铝涂层</span>
+            </div>
+            <div class="code-seg">
+              <span class="code-seg-char">D</span>
+              <span class="code-seg-name">干膜/无湿润码</span>
+              <span class="code-seg-desc">D = 无附加鲸蜡醇湿润滑（决定查干/湿力矩的关键尾缀）</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 三、12项核心概念小卡片 -->
+        <div class="section-subtitle">
+          <span>三、紧固件几何参数、材料等级与力矩核心物理定义</span>
+        </div>
+
+        <div class="def-card-grid">
+          <div class="def-card">
+            <div>
+              <div class="def-card-title">
+                <span>1. 标称直径 (Nominal Diameter)</span>
+                <span class="def-card-en">Shank &amp; Major Dia</span>
+              </div>
+              <p class="def-card-body">
+                紧固件无螺纹光杆（Shank）或外螺纹大径的名义基准尺寸。直径代码 <code>#10 (Dash 3 = 0.1900 in)</code> 以下采用美标机螺钉编号（#2=0.0860", #4=0.1120", #6=0.1380", #8=0.1640", #10=0.1900"）；从 <code>Dash 4 (1/4" = 0.2500 in)</code> 起按 <strong>1/16 英寸 (0.0625 in)</strong> 递增（Dash 5 = 5/16" = 0.3125", Dash 6 = 3/8" = 0.3750", Dash 8 = 1/2" = 0.5000"）。
+              </p>
+            </div>
+            <div class="def-card-formula">公式（Dash ≥ 4）：<code>Nominal Dia (in) = Dash ÷ 16</code></div>
+          </div>
+
+          <div class="def-card">
+            <div>
+              <div class="def-card-title">
+                <span>2. 标称螺纹尺寸 (Thread Size)</span>
+                <span class="def-card-en">Dia - TPI</span>
+              </div>
+              <p class="def-card-body">
+                由<strong>标称外径（英寸小数）+ 每英寸牙数（TPI, Threads Per Inch）</strong>组成，是检索 AMM 20-50-11 所有力矩表纵行的唯一索引。例如 <code>0.1900-32</code> 代表外径 0.1900 英寸（#10）、每英寸 32 牙细牙；<code>0.2500-28</code> 代表外径 1/4 英寸、每英寸 28 牙细牙。
+              </p>
+            </div>
+            <div class="def-card-formula">典型规格：<code>0.1900-32</code> (#10-32) · <code>0.2500-28</code> (1/4-28)</div>
+          </div>
+
+          <div class="def-card">
+            <div>
+              <div class="def-card-title">
+                <span>3. 强度等级 (Fastener Class)</span>
+                <span class="def-card-en">KSI Tension / Shear</span>
+              </div>
+              <p class="def-card-body">
+                表征紧固件最小极限抗拉强度（FTU, Ultimate Tensile Strength）或极限抗剪强度（FSU, Ultimate Shear Strength），单位为 <strong>KSI（千磅/平方英寸，1 KSI ≈ 6.895 MPa）</strong>。分为<strong>抗拉型紧固件（Tension，长螺纹，如 160–200 KSI Table 203、220 KSI Table 201）</strong>与<strong>抗剪型紧固件（Shear，短螺纹，如 95–156 KSI Table 204）</strong>。
+              </p>
+            </div>
+            <div class="def-card-formula">金属结构与复合材料结构同一紧固件所对应的强度表不同</div>
+          </div>
+
+          <div class="def-card">
+            <div>
+              <div class="def-card-title">
+                <span>4. 头部型式 (Head Style &amp; Drive)</span>
+                <span class="def-card-en">Flush vs Protruding</span>
+              </div>
+              <p class="def-card-body">
+                分为<strong>100°沉头（Flush / Countersunk Head，含标准抗拉沉头与 Reduced Shear 薄型小沉头）</strong>和<strong>凸头（Protruding Head，含六角头 Hex、十二角双六角头 12-Point/Double Hex、盘头 Pan Head）</strong>。扳拧槽型含 Phillips 十字槽（NASM9006）、Torq-Set 偏置十字槽、内六角与外六角/十二角套筒。
+              </p>
+            </div>
+            <div class="def-card-formula">气动外表面沉头螺钉常带贴合面密封胶，需查 <code>Turn Head / Fay Seal</code> 列</div>
+          </div>
+
+          <div class="def-card">
+            <div>
+              <div class="def-card-title">
+                <span>5. 螺纹制式与旋向 (Thread Type/Class)</span>
+                <span class="def-card-en">UNJF-3A / 3B RH</span>
+              </div>
+              <p class="def-card-body">
+                航空高强紧固件普遍采用符合 <strong>AS8879 (MIL-S-8879)</strong> 的 <strong>UNJF</strong> 螺纹。字母 <strong>J</strong> 表示受控增大的外螺纹牙底圆弧半径（0.15011P–0.18042P），显著降低牙底应力集中并提升抗疲劳寿命；<strong>3A</strong> 为最高精度外螺纹（螺栓）公差带，<strong>3B</strong> 为最高精度内螺纹（螺帽）公差带；默认均为<strong>右旋（Right Hand，顺时针旋紧）</strong>。
+              </p>
+            </div>
+            <div class="def-card-formula"><code>UNJF-3A</code> = 精密受控根部半径外螺纹 · <code>UNJF-3B</code> = 精密内螺纹</div>
+          </div>
+
+          <div class="def-card">
+            <div>
+              <div class="def-card-title">
+                <span>6. 材料与采购规范 (Material &amp; Spec)</span>
+                <span class="def-card-en">AMS / BPS-F-69 / BPS-N-70</span>
+              </div>
+              <p class="def-card-body">
+                三大主力材料：① <strong>6Al-4V 钛合金 (AMS 4928/4967)</strong>：高比强度、耐腐蚀，广泛用于主结构与复合材料连接；② <strong>A286 沉淀硬化不锈钢 (CRES, AMS 5731/5737)</strong>：耐高温耐蚀（需查专属力矩表如 Table 205/207/220）；③ <strong>低合金高强钢 (4340/8740)</strong>：表面镀镉 (QQ-P-416) 或涂覆铝涂层 (BMS10-85)。采购规范遵循 <strong>BPS-F-69 (螺杆)</strong> 与 <strong>BPS-N-70 (自锁螺帽)</strong>。
+              </p>
+            </div>
+            <div class="def-card-formula">注意：A286 与 Monel 紧固件严禁套用普通钢/钛紧固件力矩表</div>
+          </div>
+
+          <div class="def-card">
+            <div>
+              <div class="def-card-title">
+                <span>7. 夹持长度 (Grip Size) 与总长</span>
+                <span class="def-card-en">Grip &amp; Thread Length (TL)</span>
+              </div>
+              <p class="def-card-body">
+                <strong>夹持长度 (Grip)</strong> 是从螺栓头部支承面（凸头底面或沉头理论最大直径点）到无螺纹光杆末端的精确轴向长度，以 <strong>1/16 英寸 (0.0625 in)</strong> 为单位。总长 <code>L = Grip + TL (螺纹段长)</code>。施工时必须保证光杆完全穿过结构剪切面（螺纹不得进入结构孔承载面），且螺帽拧紧后不得因光杆过长而“假到底 (Shank Bottoming)”，需用 <code>ST8712H/J/K/L</code> 量规检验伸出量。
+              </p>
+            </div>
+            <div class="def-card-formula">垫圈规范：头部侧最多 1 片倒角垫圈 (BACS12FA)，螺帽侧最多 2 片平垫圈</div>
+          </div>
+
+          <div class="def-card">
+            <div>
+              <div class="def-card-title">
+                <span>8. Running Torque (跑合力矩 / 自锁摩擦力矩)</span>
+                <span class="def-card-en">Tare / Prevailing Torque</span>
+              </div>
+              <p class="def-card-body">
+                在<strong>螺帽底面尚未接触安装结构表面（未产生轴向预紧力 Preload）之前</strong>，将自锁螺帽旋过螺栓螺纹自锁变形段时测得的<strong>空转持续摩擦阻力矩</strong>。<br/>
+                • 根据 <strong>AMM 20-50-11 2.C.(6)</strong>：当使用需要在现场叠加跑合力矩的安装工况时，必须先用扭力扳手实测该自锁螺帽的 Running Torque，并将其<strong>直接加总到查表安装力矩值上</strong>（您可以在模块 4 的跑合力矩叠加计算器中一键自动合算）。
+              </p>
+            </div>
+            <div class="def-card-formula">总目标力矩：<code>Total Torque = Table Installation Torque + Running Torque</code></div>
+          </div>
+
+          <div class="def-card">
+            <div>
+              <div class="def-card-title">
+                <span>9. RUN ON TORQUE &amp; 最大自锁力矩 (Max Locking)</span>
+                <span class="def-card-en">Max Installation Prevailing Torque</span>
+              </div>
+              <p class="def-card-body">
+                <strong>RUN ON TORQUE（旋入力矩）</strong>即螺帽旋入螺栓过程中（贴合支承面之前）出现的自锁阻力矩；<strong>最大自锁力矩 (Max Locking Torque)</strong> 是 AMM Table 227 与 BPS-N-70 规定的旋入力矩允许上限。若旋入阻力超过该上限，说明螺纹有毛刺、乱扣、异物或锁口过紧，继续强拧会导致螺纹咬死（Galling）或产生“假力矩”，必须立即拆下报废更换。
+              </p>
+            </div>
+            <div class="def-card-formula">常见上限 (Table 227)：<code>#10-32 = 18 in-lb</code> · <code>1/4-28 = 30 in-lb</code> · <code>5/16-24 = 60 in-lb</code></div>
+          </div>
+
+          <div class="def-card">
+            <div>
+              <div class="def-card-title">
+                <span>10. 最小脱扣力矩 (Min Breakaway Torque)</span>
+                <span class="def-card-en">Minimum Removal Prevailing Torque</span>
+              </div>
+              <p class="def-card-body">
+                用于<strong>检验自锁螺帽防松能力是否合格（能否重复使用 Re-use）的最低门槛</strong>。当螺帽已松开脱离结构支承面（无轴向载荷），但自锁收口段仍完全啮合在螺栓螺纹上时，开始逆时针转动螺帽所需的<strong>最小起始力矩</strong>。若实测值低于 AMM Table 227 规定的 Min Breakaway Torque，说明自锁弹性已失效，严禁复用，必须报废更换！
+              </p>
+            </div>
+            <div class="def-card-formula">常见下限 (Table 227)：<code>#10-32 = 2.0 in-lb</code> · <code>1/4-28 = 3.5 in-lb</code> · <code>5/16-24 = 6.5 in-lb</code></div>
+          </div>
+        </div>
+
+        <!-- 四、Table 227 自锁螺帽最大自锁力矩与最小脱扣力矩对照表 -->
+        <div class="section-subtitle">
+          <span>四、AMM 20-50-11 Table 227 自锁螺帽最大自锁力矩 (Max Locking / Run-On) 与最小脱扣力矩 (Min Breakaway) 全尺寸对照表</span>
+        </div>
+        <div class="table-scroll" id="defTable227Container"></div>
+      </div>
+    </section>
+
+    <!-- ==================== 大模块 3：施工规范 (AMM 20-50-11 2.C.(1)-(12) & BAC5009) ==================== -->
+    <section id="view-rules" class="tab-view">
+      <div class="module-card">
+        <div class="module-header">
+          <div class="module-title-group">
+            <span class="step-badge">施工规范</span>
+            <h2 class="module-title">AMM 20-50-11 章节 2.C.(1)–(12) 标准力矩核心准则 &amp; BAC5009 规范</h2>
+          </div>
+          <span class="module-tag">机务现场施工必读</span>
+        </div>
+
+        <div class="def-card-grid">
+          <div class="def-card">
+            <div>
+              <div class="def-card-title"><span>2.C.(1)–(2) 手册优先级与紧固件安装准备</span><span class="def-card-en">General Priority</span></div>
+              <p class="def-card-body">若具体飞机结构修理手册 (SRM)、工程图纸或特定章节 AMM 给出了专用力矩值，优先遵循专用图纸/章节规定；当图纸未规定具体力矩时，严格执行本标准力矩章节 (AMM 20-50-11)。</p>
+            </div>
+          </div>
+          <div class="def-card">
+            <div>
+              <div class="def-card-title"><span>2.C.(3)(a)–(c) 力矩表选择与紧固件件号检索</span><span class="def-card-en">Table Selection</span></div>
+              <p class="def-card-body">根据螺杆或螺帽的基础件号（波音标准件取前8位，如 <code>BACB30NN</code>）检索适用表格。当高强度螺杆配合低强度螺帽（或反之）安装时，<strong>必须分别查出螺杆与螺帽各自的允许力矩，并取两者中较低的力矩值 (Lower Torque Value)</strong>，严禁超拧较弱零件！</p>
+            </div>
+          </div>
+          <div class="def-card">
+            <div>
+              <div class="def-card-title"><span>2.C.(3)(d) 金属部件 vs 复合材料部件安装</span><span class="def-card-en">Metal vs Composite</span></div>
+              <p class="def-card-body">凡紧固件穿过或夹持非金属/复合材料结构（CFRP / 玻璃钢），<strong>必须选用复合材料专用力矩表（Table 213–225，如 Table 215/216）</strong>，防止过大的轴向预紧力压溃复合材料层合板；全金属结构选用金属力矩表（Table 201–212）。</p>
+            </div>
+          </div>
+          <div class="def-card">
+            <div>
+              <div class="def-card-title"><span>2.C.(4)–(5) 扭力扳手精度与设定原则</span><span class="def-card-en">Torque Wrench Accuracy</span></div>
+              <p class="def-card-body">预置式（Preset）扭力扳手允许误差为 <strong>±3%</strong>，非预置指针/数显式扭力扳手允许误差为 <strong>±5%</strong>。当力矩表给出范围（如 30–35 in-lbs）时，优先将扳手设定在范围中值；若给出单一数值（如 35 in-lbs），按上述百分比公差控制。</p>
+            </div>
+          </div>
+          <div class="def-card">
+            <div>
+              <div class="def-card-title"><span>2.C.(6) 自锁跑合力矩叠加与加长接杆修正公式</span><span class="def-card-en">Running Torque &amp; Adapter</span></div>
+              <p class="def-card-body">使用加长接杆（Adapter）时，扭力扳手设定读数 <code>M = T × L ÷ (L + E)</code>（其中 T 为目标力矩，L 为扳手力臂长，E 为接杆沿力臂方向延伸长；若接杆与扳手成 90° 垂直，则 E = 0 无需修正）。</p>
+            </div>
+          </div>
+          <div class="def-card">
+            <div>
+              <div class="def-card-title"><span>2.C.(7)–(9) 干/湿润滑力矩判定准则</span><span class="def-card-en">Dry vs Lubed Threads</span></div>
+              <p class="def-card-body"><strong>干力矩 (Dry)</strong> 适用于未涂覆附加润滑剂或带干膜后缀 <code>D</code> 的紧固件；<strong>润滑力矩 (Lubed)</strong> 适用于涂有鲸蜡醇 (Cetyl Alcohol，如后缀 <code>K</code>)、发动机滑油，或使用带铝涂层（后缀 <code>A</code>，BMS10-85）的紧固件。<strong>严禁在未经授权的情况下擅自给干态紧固件涂抹滑油！</strong></p>
+            </div>
+          </div>
+          <div class="def-card">
+            <div>
+              <div class="def-card-title"><span>2.C.(10) 拧螺帽 vs 拧螺杆头 / 贴合面密封胶</span><span class="def-card-en">Turn Nut vs Turn Head / Fay Seal</span></div>
+              <p class="def-card-body">常规推荐固定螺杆头并<strong>转动螺帽 (Turn the Nut)</strong>；若因空间受限必须<strong>转动螺杆头 (Turn the Fastener Head)</strong>，或结构贴合面之间涂有<strong>贴合面密封胶 (Fay Surface Sealant)</strong>，为克服光杆与密封胶/孔壁摩擦損失，必须查 <code>TURN THE FASTENER HEAD AND/OR FAY SEAL</code> 列。</p>
+            </div>
+          </div>
+          <div class="def-card">
+            <div>
+              <div class="def-card-title"><span>2.C.(11)–(12) 开口销对齐与自锁螺帽检验</span><span class="def-card-en">Cotter Pin &amp; Self-Locking Check</span></div>
+              <p class="def-card-body">城堡螺帽对齐开口销孔时，只允许在最小力矩基础上<strong>继续顺时针拧紧至最大开口销对齐力矩</strong>，严禁退松螺帽来对孔！所有自锁螺帽旋入与拆卸时均须满足 Table 227 的最大自锁力矩与最小脱扣力矩限值。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 扭力扳手加长接杆换算器 -->
+        <div class="tare-calculator" style="margin-top: 18px;">
+          <div class="cond-row-title">🧮 扭力扳手加长接杆读数换算器 (AMM 20-50-11 2.C.(6) 公式：M = T × L ÷ (L + E))</div>
+          <div class="tare-inputs">
+            <label>目标力矩 T (in-lb)：<input type="number" id="calcTargetT" class="tare-input" value="35" step="1" /></label>
+            <label>扳手力臂长 L (in)：<input type="number" id="calcWrenchL" class="tare-input" value="10" step="0.5" /></label>
+            <label>接杆延伸长 E (in)：<input type="number" id="calcAdapterE" class="tare-input" value="2" step="0.25" /></label>
+            <div class="tare-result">
+              <span>扳手设定值 M = </span>
+              <span id="calcOutputM">29.2 in-lb (3.30 N·m)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 大模块 4：BAC标准件字典 (136项) ==================== -->
+    <section id="view-catalog" class="tab-view">
+      <div class="module-card">
+        <div class="module-header">
+          <div class="module-title-group">
+            <span class="step-badge">BAC标准件字典</span>
+            <h2 class="module-title">波音 BAC 标准紧固件完整技术字典 (共 136 项基础件号)</h2>
+          </div>
+          <span class="module-tag">Boeing Shop · PSDS · BPS-F-69 / BPS-N-70</span>
+        </div>
+
+        <div class="filter-bar">
+          <input type="text" id="catalogSearchInput" class="filter-input" placeholder="输入件号、材料、头型过滤 (如 BACB30NN、钛合金、A286、沉头、十二角)..." />
+          <select id="catalogTypeFilter" class="filter-select">
+            <option value="ALL">全部 BAC 标准件 (136项)</option>
+            <option value="BACB">BACB 螺杆/螺栓</option>
+            <option value="BACN">BACN 螺帽/自锁螺母</option>
+            <option value="BACS">BACS 螺钉/垫圈</option>
+          </select>
+        </div>
+
+        <div class="table-scroll">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th>基础件号</th>
+                <th>官方名称与中文说明</th>
+                <th>材料与采购规范</th>
+                <th>头部型式与驱动方式</th>
+                <th>螺纹与 BAC5009 分组</th>
+                <th>适用力矩表</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="catalogTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 大模块 5：手册全表预览 (Table 201–227) ==================== -->
+    <section id="view-handbook" class="tab-view">
+      <div class="module-card">
+        <div class="module-header">
+          <div class="module-title-group">
+            <span class="step-badge">手册全表预览</span>
+            <h2 class="module-title">AMM 20-50-11 标准力矩全表浏览器 (Table 201 – Table 227)</h2>
+          </div>
+          <span class="module-tag">含已补齐的 Table 205/207/208/211/220 全27张表</span>
+        </div>
+
+        <div class="filter-bar">
+          <select id="handbookTableSelect" class="filter-select" style="width:100%;"></select>
+        </div>
+
+        <div id="handbookTableMeta" class="query-path-box"></div>
+        <div id="handbookTableContainer" class="table-scroll"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    Boeing 737NG/MAX Standard Torque Reference System · 数据依据 AMM 20-50-11 &amp; BAC5009 · <strong>⚠️ 仅供参考，具体以当前现行有效手册为准！</strong>
+  </footer>
+
+  <script src="js/database.js"></script>
+  <script src="js/decoder.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
